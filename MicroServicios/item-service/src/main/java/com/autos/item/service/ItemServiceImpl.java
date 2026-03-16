@@ -21,7 +21,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private RestTemplate restTemplate;
-    private final String PRODUCT_DELETE_URL = "http://localhost:8081/products/";
+    private final String PRODUCT_DELETE_URL = "http://product-service:8081/products/";
 
     
     @Override

@@ -1,0 +1,10 @@
+com/autos/item/entity/Item.class
+com/autos/item/ItemServiceApplication.class
+com/autos/item/service/ItemService.class
+com/autos/item/controller/ItemController.class
+com/autos/item/service/ItemServiceImpl.class
+com/autos/item/dto/ProductDto.class
+com/autos/item/repository/ItemDao.class
+com/autos/item/dto/ItemDto.class
+com/autos/item/client/ProductClient.class
+com/autos/item/config/AppConfig.class

@@ -1,0 +1,10 @@
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/ItemServiceApplication.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/service/ItemService.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/entity/Item.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/dto/ItemDto.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/dto/ProductDto.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/client/ProductClient.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/controller/ItemController.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/repository/ItemDao.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/service/ItemServiceImpl.java
+/home/venabytz/26-2/Cloud-Computing/cloud-computing/MicroServicios/item-service/src/main/java/com/autos/item/config/AppConfig.java
