@@ -65,6 +65,8 @@ public class ProductServiceImpl implements ProductService {
         dto.setId(p.getId());
         dto.setmodelo(p.getmodelo());
         dto.setprecio(p.getprecio());
+        dto.setmarca(p.getmarca());
+        dto.settemporada(p.gettemporada());
         return dto;
     }
 
@@ -72,7 +74,8 @@ public class ProductServiceImpl implements ProductService {
         Product p = new Product();
         p.setmodelo(dto.getmodelo());
         p.setprecio(dto.getprecio());
+        p.setmarca(dto.getmarca());
+        p.settemporada(dto.gettemporada());
         return p;
     }
-
 }
