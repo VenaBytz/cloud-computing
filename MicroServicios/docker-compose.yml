@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+
+  itemdb:
+    image: mysql:8
+    container_name: itemdb
+    restart: always
+    environment:
+      MYSQL_DATABASE: itemdb
+      MYSQL_USER: item_user
+      MYSQL_PASSWORD: item_pass
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - ./mysql-init/itemdb.sql:/docker-entrypoint-initdb.d/itemdb.sql
+
+  productdb:
+    image: mysql:8
+    container_name: productdb
+    restart: always
+    environment:
+      MYSQL_DATABASE: productdb
+      MYSQL_USER: product_user
+      MYSQL_PASSWORD: product_pass
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3308:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - ./mysql-init/productdb.sql:/docker-entrypoint-initdb.d/productdb.sql
+
+  item-service:
+    build: ./item-service
+    depends_on:
+      itemdb:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://itemdb:3306/itemdb
+      SPRING_DATASOURCE_USERNAME: item_user
+      SPRING_DATASOURCE_PASSWORD: item_pass
+    ports:
+      - "8080:8080"
+
+  product-service:
+    build: ./product-service
+    depends_on:
+      productdb:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://productdb:3306/productdb
+      SPRING_DATASOURCE_USERNAME: product_user
+      SPRING_DATASOURCE_PASSWORD: product_pass
+    ports:
+      - "8081:8081"
