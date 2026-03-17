@@ -3,8 +3,8 @@
 Proyecto de ejemplo que implementa un sistema de microservicios para gestión de productos e ítems, usando **Spring Boot**, **MySQL** y **Docker Compose**.
 
 ## Integrantes del Equipo:
-Benito Hernandez Ivan 
-Ramirez Luna Gibran
+- Benito Hernandez Ivan 
+- Ramirez Luna Gibran
 
 ## Estructura del proyecto
 ```bash
