@@ -9,22 +9,30 @@ import com.autos.item.dto.ProductDto;
 import com.autos.item.entity.Item;
 import com.autos.item.repository.ItemDao;
 import org.springframework.transaction.annotation.Transactional;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 @Service
 public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private ProductClient productClient;
+
     @Autowired
     private ItemDao itemDao;              
 
     @Autowired
     private RestTemplate restTemplate;
+
     private final String PRODUCT_DELETE_URL = "http://product-service:8081/products/";
 
     
     @Override
+    @CircuitBreaker(name = "productService", fallbackMethod = "fallbackCreateItem")
     public ItemDto createItem(Long productId, Integer cantidad) {
         ProductDto product = productClient.getProduct(productId);
 
@@ -51,8 +59,15 @@ public class ItemServiceImpl implements ItemService {
         return dto;
     }
 
+    public ItemDto fallbackCreateItem(Long productId, Integer cantidad, Exception e) {
+        throw new RuntimeException("Product Service no disponible");
+    }
+
+
     @Override
+    @CircuitBreaker(name = "productService", fallbackMethod = "fallbackGetItem")
     public ItemDto getItemById(Long id) {
+
         Item item = itemDao.findById(id)
             .orElseThrow(() -> new RuntimeException("Item no encontrado"));
 
@@ -69,6 +84,11 @@ public class ItemServiceImpl implements ItemService {
         return dto;
     }
 
+    public ItemDto fallbackGetItem(Long id, Exception e) {
+        throw new RuntimeException("Product Service caído");
+    }
+
+
     @Override
     @Transactional
     public void deleteItem(Long itemId) {
@@ -80,13 +100,26 @@ public class ItemServiceImpl implements ItemService {
         productClient.deleteProduct(productId);
     }
 
+
     @Override
     public void deleteItemRestTemplate(Long itemId) {
 
         Item item = itemDao.findById(itemId)
             .orElseThrow(() -> new RuntimeException("Item no encontrado"));
+
         Long productId = item.getProductId();
         itemDao.deleteById(itemId);
+
         restTemplate.delete(PRODUCT_DELETE_URL + productId);
+    }
+
+
+    @CircuitBreaker(name = "productService", fallbackMethod = "fallbackProducts")
+    public List<ProductDto> getProducts() {
+        return productClient.findAll();
+    }
+
+    public List<ProductDto> fallbackProducts(Exception e) { 
+        return new ArrayList<>();
     }
 }
