@@ -2,6 +2,16 @@ version: "3.9"
 
 services:
 
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      EUREKA_INSTANCE_HOSTNAME: eureka-server
+    networks:
+      - microservices
+
   itemdb:
     image: mysql:8
     container_name: itemdb
@@ -19,6 +29,8 @@ services:
       retries: 10
     volumes:
       - ./mysql-init/itemdb.sql:/docker-entrypoint-initdb.d/itemdb.sql
+    networks:
+      - microservices
 
   productdb:
     image: mysql:8
@@ -37,27 +49,45 @@ services:
       retries: 10
     volumes:
       - ./mysql-init/productdb.sql:/docker-entrypoint-initdb.d/productdb.sql
+    networks:
+      - microservices
 
   item-service:
     build: ./item-service
+    container_name: item-service
     depends_on:
       itemdb:
         condition: service_healthy
+      eureka-server:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://itemdb:3306/itemdb
       SPRING_DATASOURCE_USERNAME: item_user
       SPRING_DATASOURCE_PASSWORD: item_pass
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     ports:
       - "8080:8080"
+    networks:
+      - microservices
 
   product-service:
     build: ./product-service
+    container_name: product-service
     depends_on:
       productdb:
         condition: service_healthy
+      eureka-server:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://productdb:3306/productdb
       SPRING_DATASOURCE_USERNAME: product_user
       SPRING_DATASOURCE_PASSWORD: product_pass
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     ports:
       - "8081:8081"
+    networks:
+      - microservices
+
+networks:
+  microservices:
+    driver: bridge

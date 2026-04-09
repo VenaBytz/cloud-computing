@@ -98,9 +98,62 @@ cd ..
 docker compose up --build
 ```
 ## Verificación
+### **1. Pruebas con exito **
 Para probar que todo funciona correctamente usar el siguiente comando
 ```bash
 curl -s http://localhost:8081/products/ver/1
 # salida esperada
 {"id":1,"modelo":"Sedan X1","precio":20000.0,"marca":"Toyota","temporada":"Verano"}
+```
+Para crear un item llamando a product-service:
+```bash
+curl -X POST "http://localhost:8080/items?productId=1&cantidad=5"
+```
+
+**Salida esperada:**
+```json
+{"id":1,"productId":1,"cantidad":5,"iva":3200,"total":116000,"fecha":"2026-04-09T20:21:53.496852551"}
+```
+### **2. Prueba con fallo (Circuit Breaker activado)**
+
+En otra terminal, detén product-service:
+
+```bash
+docker stop product-service
+```
+
+Ahora intenta crear un item:
+
+```bash
+curl -X POST "http://localhost:8080/items?productId=1&cantidad=5"
+```
+
+**Salida esperada (fallback ejecutado):**
+```json
+{"timestamp":"2026-04-09T20:23:38.495+00:00","status":500,"error":"Internal Server Error","path":"/items"}
+```
+
+En los logs de item-service verás:
+```
+Circuit breaker 'productService' is now OPEN
+```
+
+---
+
+### **3. Prueba de recuperación**
+
+Reinicia product-service:
+
+```bash
+docker start product-service
+```
+Espera 10 segundos (waitDurationInOpenState=10s) y vuelve a intentar:
+
+```bash
+curl -X POST "http://localhost:8080/items?productId=1&cantidad=5"
+```
+
+**Salida esperada:**
+```json
+{"id":2,"productId":1,"cantidad":5,"iva":3200,"total":116000,"fecha":"2026-04-09T20:24:57.111622572"}
 ```
