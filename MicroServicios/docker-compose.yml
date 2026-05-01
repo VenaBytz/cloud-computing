@@ -83,8 +83,45 @@ services:
       SPRING_DATASOURCE_USERNAME: product_user
       SPRING_DATASOURCE_PASSWORD: product_pass
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_INSTANCEID: product-service-1
     ports:
       - "8081:8081"
+    networks:
+      - microservices
+
+  # Segunda instancia de product-service para demostrar balanceo de carga (Ribbon)
+  product-service-2:
+    build: ./product-service
+    container_name: product-service-2
+    depends_on:
+      productdb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://productdb:3306/productdb
+      SPRING_DATASOURCE_USERNAME: product_user
+      SPRING_DATASOURCE_PASSWORD: product_pass
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_INSTANCEID: product-service-2
+    ports:
+      - "8082:8081"
+    networks:
+      - microservices
+
+  # Servidor Zuul: API Gateway con ruteo dinámico, Hystrix y balanceo de carga
+  zuul-server:
+    build: ./zuul-server
+    container_name: zuul-server
+    depends_on:
+      - eureka-server
+      - product-service
+      - product-service-2
+      - item-service
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    ports:
+      - "8090:8090"
     networks:
       - microservices
 

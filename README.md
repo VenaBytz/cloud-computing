@@ -1,159 +1,345 @@
-# Cloud Computing - Microservicios
+# Práctica 4 — Servidor Zuul de Netflix
 
-Proyecto de ejemplo que implementa un sistema de microservicios para gestión de productos e ítems, usando **Spring Boot**, **MySQL** y **Docker Compose**.
-
-## Integrantes del Equipo:
-- Benito Hernandez Ivan 
+## Integrantes del Equipo
+- Benito Hernandez Ivan
 - Ramirez Luna Gibran
 
-## Estructura del proyecto
-```bash
-cloud-computing
-├── MicroServicios
-│   ├── docker-compose.yml
-│   ├── item-service
-│   │   ├── Dockerfile
-│   │   ├── pom.xml
-│   │   └── src
-│   │       └── main
-│   │           ├── java
-│   │           │   └── com
-│   │           │       └── autos
-│   │           │           └── item
-│   │           │               ├── client
-│   │           │               │   └── ProductClient.java
-│   │           │               ├── config
-│   │           │               │   └── AppConfig.java
-│   │           │               ├── controller
-│   │           │               │   └── ItemController.java
-│   │           │               ├── dto
-│   │           │               │   ├── ItemDto.java
-│   │           │               │   └── ProductDto.java
-│   │           │               ├── entity
-│   │           │               │   └── Item.java
-│   │           │               ├── ItemServiceApplication.java
-│   │           │               ├── repository
-│   │           │               │   └── ItemDao.java
-│   │           │               └── service
-│   │           │                   ├── ItemServiceImpl.java
-│   │           │                   └── ItemService.java
-│   │           └── resources
-│   │               ├── application.properties
-│   │               └── data.sql
-│   ├── mysql-init
-│   │   ├── itemdb.sql
-│   │   └── productdb.sql
-│   └── product-service
-│       ├── Dockerfile
-│       ├── pom.xml
-│       └── src
-│           └── main
-│               ├── java
-│               │   └── com
-│               │       └── autos
-│               │           └── product
-│               │               ├── controller
-│               │               │   └── ProductController.java
-│               │               ├── dto
-│               │               │   └── ProductDto.java
-│               │               ├── entity
-│               │               │   └── Product.java
-│               │               ├── ProductServiceApplication.java
-│               │               ├── repository
-│               │               │   └── ProductDao.java
-│               │               └── service
-│               │                   ├── ProductServiceImpl.java
-│               │                   └── ProductService.java
-│               └── resources
-│                   ├── application.properties
-│                   └── data.sql
-└── README.md
-```
 ---
 
-## Requisitos
+## Descripción
 
-- **Java 17+** (compatible con Spring Boot 3.x)  
-- **Maven**  
-- **Docker** y **Docker Compose**  
+Continuación de la Práctica 3. Se instaló y configuró el servidor **Netflix Zuul** como API Gateway sobre la arquitectura de microservicios existente (product-service, item-service, eureka-server).
+
+Se implementaron las siguientes funcionalidades:
+
+1. Ruteo dinámico
+2. Balanceo de carga entre instancias con Hystrix/Ribbon
+3. Recuperación de errores mediante `@HystrixCommand`
+4. Recuperación por latencia (timeout > 1 segundo)
 
 ---
 
-## Compilación de los servicios
+## Stack tecnológico
 
-Desde `cloud-computing/MicroServicios` ejecutar:
+| Servicio | Spring Boot | Spring Cloud | Puerto |
+|---|---|---|---|
+| eureka-server | 3.2.5 | 2023.0.0 | 8761 |
+| product-service (×2) | 3.2.5 | 2023.0.0 | 8081 / 8082 |
+| item-service | 3.2.5 | 2023.0.0 | 8080 |
+| **zuul-server** | **2.3.12** | **Hoxton.SR12** | **8090** |
+
+> **Nota:** Zuul e Hystrix fueron eliminados del BOM a partir de Spring Cloud 2020.0.0. La última versión del BOM oficial que los incluye es **Hoxton.SR12**, compatible con Spring Boot 2.3.x. La comunicación entre el cliente Eureka 2.2.x (Hoxton) y el servidor Eureka 3.2.x funciona correctamente porque la API REST de Eureka no cambió.
+
+---
+
+## Ejecución
 
 ```bash
-# Compilar item-service
-cd item-service
-mvn clean package
-
-# Compilar product-service
-cd ../product-service
-mvn clean package
-
-# Volver al directorio principal
-cd ..
-# Levantar los servicios
-docker compose up --build
+cd MicroServicios
+docker-compose down        # detener si ya corría
+docker-compose up --build  # construir y levantar todos los servicios
 ```
-## Verificación
-### **1. Pruebas con exito **
-Para probar que todo funciona correctamente usar el siguiente comando
+
+Servicios disponibles una vez levantados:
+
+| URL | Descripción |
+|---|---|
+| http://localhost:8761 | Eureka Dashboard |
+| http://localhost:8090/api/productos/** | Gateway → product-service |
+| http://localhost:8090/api/items/** | Gateway → item-service |
+| http://localhost:8090/proxy/productos | Proxy con @HystrixCommand |
+
+---
+
+## Estructura del proyecto (Práctica 4)
+
+```
+MicroServicios/
+├── docker-compose.yml
+├── eureka-server/
+├── product-service/          ← instancia 1 (:8081)
+├── product-service/          ← instancia 2 (:8082) [mismo código]
+├── item-service/
+└── zuul-server/              ← NUEVO
+    ├── pom.xml               (Spring Boot 2.3.12 + Hoxton.SR12)
+    ├── Dockerfile
+    └── src/main/java/com/autos/zuul/
+        ├── ZuulServerApplication.java
+        ├── filter/
+        │   ├── PreFilter.java        ← filtro antes del ruteo
+        │   └── PostFilter.java       ← filtro después del ruteo
+        ├── fallback/
+        │   ├── ProductFallbackProvider.java  ← fallback nivel Zuul
+        │   └── ItemFallbackProvider.java
+        ├── service/
+        │   └── ProductProxyService.java      ← @HystrixCommand
+        └── controller/
+            └── ProxyController.java
+```
+
+---
+
+---
+
+# Reporte de Funcionalidades
+
+---
+
+## 1. Ruteo Dinámico
+
+**Descripción:** Zuul actúa como API Gateway y enruta automáticamente las peticiones al microservicio correcto, descubriendo sus instancias en tiempo real a través de Eureka (no se necesita conocer la IP ni el puerto del servicio destino).
+
+**Configuración** (`zuul-server/src/main/resources/application.yml`):
+
+```yaml
+zuul:
+  routes:
+    productos:
+      path: /api/productos/**
+      serviceId: product-service   # nombre registrado en Eureka
+      stripPrefix: true
+    items:
+      path: /api/items/**
+      serviceId: item-service
+      stripPrefix: true
+    productos-directo:
+      path: /api/directo/**
+      url: http://localhost:8081    # ruteo estático por URL directa
+      stripPrefix: true
+```
+
+**Ejemplo — Ruteo hacia product-service:**
+
 ```bash
-curl -s http://localhost:8081/products/ver/1
-# salida esperada
+curl http://localhost:8090/api/productos/products/list
+```
+
+Zuul recibe la petición en `:8090`, consulta Eureka para resolver `product-service`, y reenvía transparentemente hacia `:8081/products/list`.
+
+**Respuesta obtenida:**
+
+```json
+[
+  {"id":1,"modelo":"Sedan X1","precio":20000.0,"marca":"Toyota","temporada":"Verano"},
+  {"id":2,"modelo":"SUV Y2","precio":35000.0,"marca":"Honda","temporada":"Invierno"},
+  {"id":3,"modelo":"Coupe Z3","precio":28000.0,"marca":"BMW","temporada":"Primavera"},
+  ...
+]
+```
+
+**Ejemplo — Ruteo hacia item-service:**
+
+```bash
+curl http://localhost:8090/api/items/items/1
+```
+
+**Respuesta obtenida:**
+
+```json
+{"id":1,"productId":1,"cantidad":2,"iva":6400,"total":46400,"fecha":"2026-05-01T00:00:00"}
+```
+
+**Filtros aplicados en cada ruteo:**
+
+- `PreFilter` — registra el método HTTP, la URI y el servicio destino **antes** de enrutar. También agrega el header `X-Zuul-Gateway: zuul-server`.
+- `PostFilter` — registra el código de respuesta HTTP **después** de recibir la respuesta del microservicio. Agrega el header `X-Zuul-Procesado: true`.
+
+Log generado en zuul-server:
+
+```
+[PRE-FILTER]  Método: GET | URI: /api/productos/products/list | Servicio destino: product-service
+[POST-FILTER] Respuesta enviada al cliente | Código HTTP: 200
+```
+
+---
+
+## 2. Balanceo de Carga con Hystrix / Ribbon
+
+**Descripción:** Se levantaron **dos instancias** de product-service (`:8081` y `:8082`), ambas registradas en Eureka con el mismo nombre de servicio `product-service`. Zuul utiliza **Ribbon** (integrado en el proxy de Zuul) para distribuir las peticiones en modo **round-robin** entre las instancias disponibles. Hystrix envuelve cada llamada con un Circuit Breaker, de modo que si una instancia falla, el tráfico se redirige a la otra sin que el cliente lo note.
+
+**Registro en Eureka — dos instancias activas:**
+
+```bash
+curl http://localhost:8761/eureka/apps/product-service
+```
+
+```xml
+<instanceId>product-service-2</instanceId>
+<ipAddr>172.18.0.7</ipAddr>
+<port enabled="true">8081</port>
+
+<instanceId>product-service-1</instanceId>
+<ipAddr>172.18.0.6</ipAddr>
+<port enabled="true">8081</port>
+```
+
+**Ejemplo — 8 llamadas consecutivas a través de Zuul:**
+
+```bash
+for i in 1 2 3 4 5 6 7 8; do
+  curl -s http://localhost:8090/api/productos/products/instance-info
+  echo
+done
+```
+
+**Respuesta obtenida — Ribbon alterna entre instancias en round-robin:**
+
+```
+{"puerto":8081,"ip":"172.18.0.7","host":"dac68ba973a2","servicio":"product-service"}
+{"puerto":8081,"ip":"172.18.0.6","host":"b1be001239f4","servicio":"product-service"}
+{"puerto":8081,"ip":"172.18.0.7","host":"dac68ba973a2","servicio":"product-service"}
+{"puerto":8081,"ip":"172.18.0.6","host":"b1be001239f4","servicio":"product-service"}
+{"puerto":8081,"ip":"172.18.0.7","host":"dac68ba973a2","servicio":"product-service"}
+{"puerto":8081,"ip":"172.18.0.6","host":"b1be001239f4","servicio":"product-service"}
+{"puerto":8081,"ip":"172.18.0.7","host":"dac68ba973a2","servicio":"product-service"}
+{"puerto":8081,"ip":"172.18.0.6","host":"b1be001239f4","servicio":"product-service"}
+```
+
+Las IPs `172.18.0.7` y `172.18.0.6` corresponden a los contenedores `product-service-2` y `product-service-1` respectivamente. Ribbon distribuye exactamente la mitad del tráfico a cada instancia.
+
+---
+
+## 3. Recuperación de Errores con `@HystrixCommand`
+
+**Descripción:** Cuando se realiza una llamada a un microservicio y éste falla (conexión rechazada, timeout, excepción), Hystrix intercepta el error y ejecuta automáticamente el **método alternativo (fallback)** indicado en la anotación `@HystrixCommand`. El cliente recibe una respuesta alternativa coherente en lugar de un error HTTP 500.
+
+**Implementación** (`ProductProxyService.java`):
+
+```java
+@HystrixCommand(fallbackMethod = "obtenerProductoFallback")
+public Object obtenerProducto(Long id) {
+    return restTemplate.getForObject(
+        "http://product-service/products/ver/" + id, Object.class);
+}
+
+public Object obtenerProductoFallback(Long id, Throwable e) {
+    Map<String, Object> resp = new HashMap<>();
+    resp.put("fallback", true);
+    resp.put("id", id);
+    resp.put("modelo", "PRODUCTO NO DISPONIBLE");
+    resp.put("marca", "N/A");
+    resp.put("precio", 0.0);
+    resp.put("mensaje", "product-service falló. Datos alternativos retornados por @HystrixCommand.");
+    return resp;
+}
+```
+
+**Pasos para reproducir:**
+
+```bash
+# 1. Verificar funcionamiento normal
+curl http://localhost:8090/proxy/productos/1
+```
+
+```json
 {"id":1,"modelo":"Sedan X1","precio":20000.0,"marca":"Toyota","temporada":"Verano"}
 ```
-Para crear un item llamando a product-service:
+
 ```bash
-curl -X POST "http://localhost:8080/items?productId=1&cantidad=5"
+# 2. Detener el servicio para simular fallo
+docker stop product-service product-service-2
+
+# 3. Llamar al mismo endpoint
+curl http://localhost:8090/proxy/productos/1
 ```
 
-**Salida esperada:**
+**Respuesta con fallback activado:**
+
 ```json
-{"id":1,"productId":1,"cantidad":5,"iva":3200,"total":116000,"fecha":"2026-04-09T20:21:53.496852551"}
+{
+  "fallback": true,
+  "id": 1,
+  "modelo": "PRODUCTO NO DISPONIBLE",
+  "marca": "N/A",
+  "precio": 0.0,
+  "mensaje": "product-service falló. Datos alternativos retornados por @HystrixCommand.",
+  "origen": "@HystrixCommand fallbackMethod"
+}
 ```
-### **2. Prueba con fallo (Circuit Breaker activado)**
-
-En otra terminal, detén product-service:
 
 ```bash
-docker stop product-service
+# Verificar fallback en lista también
+curl http://localhost:8090/proxy/productos
 ```
 
-Ahora intenta crear un item:
-
-```bash
-curl -X POST "http://localhost:8080/items?productId=1&cantidad=5"
-```
-
-**Salida esperada (fallback ejecutado):**
 ```json
-{"timestamp":"2026-04-09T20:23:38.495+00:00","status":500,"error":"Internal Server Error","path":"/items"}
+{
+  "fallback": true,
+  "productos": [],
+  "mensaje": "product-service no disponible. Lista vacía retornada por @HystrixCommand.",
+  "origen": "@HystrixCommand fallbackMethod"
+}
 ```
 
-En los logs de item-service verás:
-```
-Circuit breaker 'productService' is now OPEN
+```bash
+# 4. Restaurar el servicio
+docker start product-service product-service-2
 ```
 
 ---
 
-### **3. Prueba de recuperación**
+## 4. Recuperación por Latencia (`timeoutInMilliseconds`)
 
-Reinicia product-service:
+**Descripción:** Si un microservicio responde más lento de lo permitido (en este caso 1 segundo), Hystrix cancela la llamada y ejecuta el método alternativo **sin esperar a que el servicio termine**. Esto evita que peticiones lentas bloqueen hilos y degraden todo el sistema.
+
+**Implementación** (`ProductProxyService.java`):
+
+```java
+@HystrixCommand(
+    fallbackMethod = "listarLentoFallback",
+    commandProperties = {
+        @HystrixProperty(
+            name  = "execution.isolation.thread.timeoutInMilliseconds",
+            value = "1000"   // 1 segundo máximo
+        )
+    }
+)
+public Object listarProductosLento() {
+    // /products/slow duerme 2 segundos → dispara el timeout de 1 s
+    return restTemplate.getForObject(
+        "http://product-service/products/slow", Object.class);
+}
+
+public Object listarLentoFallback(Throwable e) {
+    Map<String, Object> resp = new HashMap<>();
+    resp.put("fallback", true);
+    resp.put("productos", Collections.emptyList());
+    resp.put("mensaje", "El servicio tardó más de 1 segundo. Método alternativo activado por LATENCIA.");
+    resp.put("timeout_ms", 1000);
+    return resp;
+}
+```
+
+**Endpoint lento simulado** (`ProductController.java`):
+
+```java
+@GetMapping("/products/slow")
+public ResponseEntity<List<ProductDto>> listarSlow() throws InterruptedException {
+    Thread.sleep(2000); // demora 2 segundos
+    return ResponseEntity.ok(service.getProducts());
+}
+```
+
+**Ejemplo:**
 
 ```bash
-docker start product-service
-```
-Espera 10 segundos (waitDurationInOpenState=10s) y vuelve a intentar:
-
-```bash
-curl -X POST "http://localhost:8080/items?productId=1&cantidad=5"
+time curl http://localhost:8090/proxy/productos-lento
 ```
 
-**Salida esperada:**
+**Respuesta obtenida — fallback ejecutado en ~1 segundo:**
+
 ```json
-{"id":2,"productId":1,"cantidad":5,"iva":3200,"total":116000,"fecha":"2026-04-09T20:24:57.111622572"}
+{
+  "fallback": true,
+  "productos": [],
+  "mensaje": "El servicio tardó más de 1 segundo. Método alternativo activado por LATENCIA.",
+  "timeout_ms": 1000,
+  "origen": "@HystrixCommand timeoutInMilliseconds=1000"
+}
 ```
+
+```
+curl -s http://localhost:8090/proxy/productos-lento  0.01s user 0.01s system 2% cpu 1.062 total
+```
+
+El endpoint `/products/slow` tarda 2 segundos en responder. Hystrix cancela la llamada al cumplirse 1 segundo y retorna el fallback. El tiempo total de respuesta fue de **1.062 segundos**, confirmando que Hystrix no esperó los 2 segundos completos.

@@ -10,6 +10,9 @@ public interface ProductClient {
     @GetMapping("/products/ver/{id}")
     ProductDto getProduct(@PathVariable("id") Long id);
     
+    @GetMapping("/products/list")
+    java.util.List<ProductDto> findAll();
+
     @DeleteMapping("/products/{id}")
     void deleteProduct(@PathVariable("id") Long id);
 }
