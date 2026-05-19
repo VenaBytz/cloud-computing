@@ -1,11 +1,24 @@
 package com.autos.product.dto;
 
-public class ProductDto {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
+public class ProductDto {
+    
+    @Positive
     private Long id;
+    
+    @NotNull
     private String modelo;
+
+    @Positive
     private double precio;
+
+    @NotNull
     private String marca;
+
+    @NotNull
     private String temporada;
 
     public ProductDto() {}
@@ -25,35 +38,35 @@ public class ProductDto {
     public void setId(long id) {
         this.id = id;
     }
-    public String getmodelo() {
+    public String getModelo() {
         return modelo;
     }
 
-    public void setmodelo(String modelo) {
+    public void setModelo(String modelo) {
         this.modelo = modelo;
     }
 
-    public double getprecio() {
+    public double getPrecio() {
         return precio;
     }
 
-    public void setprecio(double precio) {
+    public void setPrecio(double precio) {
         this.precio = precio;
     }
 
-    public String getmarca() {
+    public String getMarca() {
         return marca;
     }
 
-    public void setmarca(String marca) {
+    public void setMarca(String marca) {
         this.marca = marca;
     }
 
-    public String gettemporada() {
+    public String getTemporada() {
         return temporada;
     }
 
-    public void settemporada(String temporada) {
+    public void setTemporada(String temporada) {
         this.temporada = temporada;
     }
 }

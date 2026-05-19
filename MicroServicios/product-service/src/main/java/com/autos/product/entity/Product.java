@@ -1,9 +1,9 @@
 package com.autos.product.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 @Entity
 public class Product {
@@ -33,35 +33,35 @@ public class Product {
     public void setId(long id) {
         this.id = id;
     }
-    public String getmodelo() {
+    public String getModelo() {
         return modelo;
     }
 
-    public void setmodelo(String modelo) {
+    public void setModelo(String modelo) {
         this.modelo = modelo;
     }
 
-    public double getprecio() {
+    public double getPrecio() {
         return precio;
     }
 
-    public void setprecio(double precio) {
+    public void setPrecio(double precio) {
         this.precio = precio;
     }
 
-    public String getmarca() {
+    public String getMarca() {
         return marca;
     }
 
-    public void setmarca(String marca) {
+    public void setMarca(String marca) {
         this.marca = marca;
     }
 
-    public String gettemporada() {
+    public String getTemporada() {
         return temporada;
     }
 
-    public void settemporada(String temporada) {
+    public void setTemporada(String temporada) {
         this.temporada = temporada;
     }
 

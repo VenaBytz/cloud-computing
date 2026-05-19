@@ -3,6 +3,8 @@ package com.autos.product.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.ui.Model;
+import org.springframework.validation.annotation.Validated;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,8 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.autos.product.dto.ProductDto;
 import com.autos.product.service.ProductService;
+import org.springframework.stereotype.Controller;
 
-@RestController
+@Controller
 @RequestMapping("/products")
 public class ProductController {
 
@@ -22,32 +25,54 @@ public class ProductController {
     @Value("${server.port}")
     private int port;
 
-	@Autowired
+  	@Autowired
     private ProductService service;
 
     @GetMapping("/list")
+    @ResponseBody
     public List<ProductDto> getProducts() {
         return service.getProducts();
     }
 
     @GetMapping("/ver/{id}")
+    @ResponseBody
     public ProductDto detalle(@PathVariable Long id) {
       return service.getProduct(id);
     }
-    
-    @PostMapping
-    public ProductDto createProduct(@RequestBody ProductDto product) {
-        return service.createProduct(product);
-    }
+ 
+    @PostMapping("/crear")
+    @ResponseBody
+	  public ProductDto CreaProductDto( @Validated @RequestBody ProductDto producto ) {
+  		return service.creaProducto(producto);
+  	}   
+ 
+    @PostMapping("/modificar/{id}")
+    @ResponseBody
+    public ProductDto modificaProductDto(
+      @PathVariable Long id,
+      @Validated @RequestBody ProductDto producto) {
 
-    @PutMapping("/{id}")
-    public ProductDto updateProduct(@PathVariable Long id, @RequestBody ProductDto product) {
-        return service.updateProduct(id, product);
-    }
+      return service.modificaProducto(id, producto);
+    }	
+  	@DeleteMapping("/eliminar/{id}")
+    @ResponseBody
+  	public String EliminaProductDto(@PathVariable Long id) {
+  		return service.eliminaProducto(id);
+  	}
+	
+	  @GetMapping("/contar")
+    @ResponseBody
+  	public Long CuentaProductDtos() {
+  		return service.cuentaProductos();
+  	}
 
-    @DeleteMapping("/{id}")
-    public void deleteProduct(@PathVariable Long id) {
-        service.deleteProduct(id);
+    @GetMapping("/modelos")
+    public String listar(Model model) {
+      model.addAttribute(
+        "modelos",
+        service.getProducts()
+      );
+      return "modelos";
     }
 
     /**
@@ -56,6 +81,7 @@ public class ProductController {
      * por lo que Zuul activará el fallback antes de recibir respuesta.
      */
     @GetMapping("/slow")
+    @ResponseBody
     public ResponseEntity<List<ProductDto>> listarSlow() throws InterruptedException {
         logger.info("[SLOW] Endpoint lento invocado en puerto {}. Esperando 2 segundos...", port);
         Thread.sleep(2000);
@@ -67,6 +93,7 @@ public class ProductController {
      * Permite verificar el balanceo de carga entre product-service y product-service-2.
      */
     @GetMapping("/instance-info")
+    @ResponseBody
     public ResponseEntity<Map<String, Object>> instanceInfo() throws java.net.UnknownHostException {
         Map<String, Object> info = new HashMap<>();
         info.put("servicio", "product-service");
