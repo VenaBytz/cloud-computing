@@ -1,4 +1,4 @@
-# Práctica 4 — Servidor Zuul de Netflix
+# Práctica 5 — Operaciones CRUD
 
 ## Integrantes del Equipo
 - Benito Hernandez Ivan
@@ -8,15 +8,10 @@
 
 ## Descripción
 
-Continuación de la Práctica 3. Se instaló y configuró el servidor **Netflix Zuul** como API Gateway sobre la arquitectura de microservicios existente (product-service, item-service, eureka-server).
-
+Continuación de la Práctica 4.
 Se implementaron las siguientes funcionalidades:
-
-1. Ruteo dinámico
-2. Balanceo de carga entre instancias con Hystrix/Ribbon
-3. Recuperación de errores mediante `@HystrixCommand`
-4. Recuperación por latencia (timeout > 1 segundo)
-
+1. Operaciones CRUD
+2. Vista para listar los productos
 ---
 
 ## Stack tecnológico
@@ -51,30 +46,31 @@ Servicios disponibles una vez levantados:
 
 ---
 
-## Estructura del proyecto (Práctica 4)
+## Estructura del proyecto
 
 ```
 MicroServicios/
 ├── docker-compose.yml
 ├── eureka-server/
 ├── product-service/          ← instancia 1 (:8081)
+├── src
+│   ├── main
+│   │   ├── java
+│   │   └── resources
+│   │       ├── application.properties
+│   │       ├── data.sql
+│   │       └── templates
+│   │           └── modelos.html ← Vista para la lista de productos
+│   └── test
+│       └── java
+│           └── com
+│               └── autos
+│                   └── product
+│                       └── service
+│                           └── ProductServiceImplTest.java ← Pruebas con JUint
 ├── product-service/          ← instancia 2 (:8082) [mismo código]
 ├── item-service/
-└── zuul-server/              ← NUEVO
-    ├── pom.xml               (Spring Boot 2.3.12 + Hoxton.SR12)
-    ├── Dockerfile
-    └── src/main/java/com/autos/zuul/
-        ├── ZuulServerApplication.java
-        ├── filter/
-        │   ├── PreFilter.java        ← filtro antes del ruteo
-        │   └── PostFilter.java       ← filtro después del ruteo
-        ├── fallback/
-        │   ├── ProductFallbackProvider.java  ← fallback nivel Zuul
-        │   └── ItemFallbackProvider.java
-        ├── service/
-        │   └── ProductProxyService.java      ← @HystrixCommand
-        └── controller/
-            └── ProxyController.java
+└── zuul-server/
 ```
 
 ---
