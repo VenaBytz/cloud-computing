@@ -2,62 +2,37 @@ server:
   port: 8090
 
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
   application:
     name: zuul-server
 
 eureka:
   client:
-    serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
   instance:
-    preferIpAddress: true
+    prefer-ip-address: true
 
-# =====================================================================
-# RUTEO DINÁMICO DE ZUUL
-# Zuul descubre instancias activas de cada servicio vía Eureka
-# y distribuye la carga entre ellas automáticamente (Ribbon).
-# =====================================================================
 zuul:
   routes:
-    # Ruta 1: hacia product-service (descubrimiento dinámico por Eureka)
     productos:
-      path: /api/productos/**
+      path: /products/**
       serviceId: product-service
-      stripPrefix: true
-
-    # Ruta 2: hacia item-service (descubrimiento dinámico por Eureka)
+      strip-prefix: false
     items:
-      path: /api/items/**
+      path: /items/**
       serviceId: item-service
-      stripPrefix: true
-
-    # Ruta 3: URL estática (ruteo directo sin Eureka)
+      strip-prefix: false
     productos-directo:
       path: /api/directo/**
-      url: http://localhost:8081
-      stripPrefix: true
+      url: http://product-service:8081
+      strip-prefix: false
+  ignored-patterns: /eureka/**
 
-  ignoredPatterns: /eureka/**
-
-# =====================================================================
-# HYSTRIX: Circuit Breaker y protección contra latencia
-# timeout global de 6 s para las rutas de Zuul.
-# Los @HystrixCommand del ProxyController usan sus propios timeouts.
-# =====================================================================
-hystrix:
-  command:
-    default:
-      execution:
-        isolation:
-          thread:
-            timeoutInMilliseconds: 6000
-
-# =====================================================================
-# RIBBON: Balanceo de carga (round-robin entre instancias Eureka)
-# =====================================================================
 ribbon:
   ConnectTimeout: 3000
-  ReadTimeout: 5000
+  ReadTimeout: 6000
   eureka:
     enabled: true
 

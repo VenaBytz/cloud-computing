@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: item-service
+  sql:
+    init:
+      mode: always
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      defecto:
+        sliding-window-size: 6
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 20s
+        permitted-number-of-calls-in-half-open-state: 4
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+    instances:
+      productService:
+        base-config: defecto
+  timelimiter:
+    instances:
+      productService:
+        timeout-duration: 2s
+        cancel-running-future: true

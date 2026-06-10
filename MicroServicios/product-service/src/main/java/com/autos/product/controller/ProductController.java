@@ -1,5 +1,5 @@
 package com.autos.product.controller;
-
+import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,17 +34,22 @@ public class ProductController {
         return service.getProducts();
     }
 
+    /**
+     * Endpoint que lanza excepción controlada para demostrar @CircuitBreaker en item-service.
+     * Simula un fallo parcial sin caer todo el servicio.
+     */
     @GetMapping("/ver/{id}")
     @ResponseBody
     public ProductDto detalle(@PathVariable Long id) {
-      return service.getProduct(id);
+      logger.info("Fallo controlado para id: {}", id);
+      throw new IllegalStateException("Producto no encontrado!");
     }
- 
+
     @PostMapping("/crear")
     @ResponseBody
-	  public ProductDto CreaProductDto( @Validated @RequestBody ProductDto producto ) {
-  		return service.creaProducto(producto);
-  	}   
+    public ProductDto CreaProductDto( @Validated @RequestBody ProductDto producto ) {
+  	return service.creaProducto(producto);
+    }   
  
     @PostMapping("/modificar/{id}")
     @ResponseBody
@@ -74,17 +79,17 @@ public class ProductController {
       );
       return "modelos";
     }
-
+    
     /**
-     * Endpoint lento para demostrar la recuperación por latencia de Hystrix.
-     * Duerme 2 segundos; el timeout configurado en Zuul es 1 segundo,
-     * por lo que Zuul activará el fallback antes de recibir respuesta.
+     * Endpoint lento para demostrar @TimeLimiter en item-service.
+     * Duerme 5s; el timeout configurado en Resilience4J es 2s,
+     * por lo que TimeLimiter cancela la llamada y ejecuta el fallback.
      */
     @GetMapping("/slow")
     @ResponseBody
     public ResponseEntity<List<ProductDto>> listarSlow() throws InterruptedException {
-        logger.info("[SLOW] Endpoint lento invocado en puerto {}. Esperando 2 segundos...", port);
-        Thread.sleep(2000);
+        logger.info("Endpoint lento invocado en puerto {}. Esperando 5 segundos...", port);
+        TimeUnit.SECONDS.sleep(5L);
         return ResponseEntity.ok(service.getProducts());
     }
 
